@@ -341,9 +341,10 @@ async function withdraw(btn) {
   try {
     const res = await api(null, { action: "withdraw", first: guest.first, last: guest.last });
     if (res.status !== "ok") throw new Error(res.status);
-    guest.data.previous = null;
-    renderInvite();
-    const msg = $("send-msg"); msg.className = "msg"; msg.textContent = "Your answer has been withdrawn.";
+    guest = null;
+    $("first").value = ""; $("last").value = "";
+    const msg = $("find-msg"); msg.className = "msg"; msg.textContent = "Your answer has been withdrawn.";
+    show("step-find");
   } catch (err) {
     alert("We couldn't withdraw your answer. Please try again.");
   } finally {
