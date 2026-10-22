@@ -122,10 +122,7 @@
 
   <!-- Step 2: invitation + form -->
   <section id="step-invite" class="hidden">
-    <div class="card">
-      <p id="welcome" class="welcome"></p>
-      <div id="flyer" class="flyer"></div>
-    </div>
+    <p id="welcome" class="welcome"></p>
     <div id="rsvp-card" class="card">
       <h2>Kindly RSVP</h2>
       <p id="rsvp-hint" class="hint">Enter the number attending each meal (0 if not coming).</p>
@@ -162,7 +159,6 @@ let guest = null;   // { first, last, data }
 
 function show(id) {
   ["step-find", "step-invite", "step-done"].forEach(s => $(s).classList.toggle("hidden", s !== id));
-  document.querySelector("header").classList.toggle("hidden", id === "step-invite");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -204,29 +200,9 @@ function el(tag, cls, text) {
   return e;
 }
 
-function renderFlyer(f) {
-  const box = $("flyer");
-  box.innerHTML = "";
-  box.append(el("div", "bsd", "בס״ד"));
-  const img = el("img", "logo"); img.src = "img/logo.jpg"; img.alt = ""; box.append(img);
-  if (f.heading) { box.append(el("p", "heading", f.heading), el("div", "short")); }
-  box.append(el("p", "name", "Daniel"), el("p", "cel", "Celebrates his Bar Mitzvah"));
-  f.sections.forEach(sec => {
-    const s = el("div", "sec");
-    s.append(el("div", "date", sec.date));
-    sec.items.forEach(it => {
-      s.append(el("div", "ev", it.title));
-      it.lines.forEach(l => s.append(el("div", "ln", l)));
-    });
-    box.append(s);
-  });
-  box.append(el("div", "end", guest.data.meals.length ? "Kindly RSVP below" : ""));
-}
-
 function renderInvite() {
   const d = guest.data;
   $("welcome").textContent = "Welcome, " + d.greeting;
-  renderFlyer(d.flyer);
   const hasMeals = d.meals.length > 0;
   $("rsvp-card").classList.toggle("hidden", !hasMeals);
   $("noreply-card").classList.toggle("hidden", hasMeals);
