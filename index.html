@@ -73,6 +73,11 @@
   .summary { list-style: none; padding: 0; margin: 0 0 8px; }
   .summary li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .summary li:last-child { border-bottom: 0; }
+  .summary li { flex-wrap: wrap; row-gap: 8px; }
+  .cal { flex-basis: 100%; display: flex; gap: 8px; }
+  .cal a { flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--red); text-decoration: none;
+    border: 1px solid var(--red); border-radius: 8px; padding: 7px 6px; background: #fff; }
+  .cal a:active { background: var(--red-soft); }
   .center { text-align: center; }
   .hidden { display: none !important; }
   .flyer { border: 1.5px solid var(--red); outline: 1px solid #8a857c; outline-offset: -7px;
@@ -330,9 +335,39 @@ function renderSummary(counts) {
     const li = document.createElement("li");
     const a = document.createElement("span"); a.textContent = d.mealInfo[m].title;
     const b = document.createElement("span"); b.textContent = total ? parts.join(", ") : "Not attending";
-    li.append(a, b); ul.append(li);
+    li.append(a, b);
+    if (total && CAL[m]) li.append(calLinks(m));
+    ul.append(li);
   });
 }
+
+// One calendar event per meal. Static .ics files live in cal/ (keep times in sync).
+const CAL = {
+  Brunch: { file: "cal/brunch.ics", title: "Daniel's Bar Mitzvah · Sunday Brunch", start: "20261206T163000Z", end: "20261206T193000Z",
+    loc: "Midrasho Shel Shem, 987 Schumacher Dr, Los Angeles, CA", details: "Tefillin & First Aliyah at 8:30 AM, brunch to follow." },
+  Dinner: { file: "cal/dinner.ics", title: "Daniel's Bar Mitzvah · Friday Dinner", start: "20261212T001500Z", end: "20261212T043000Z",
+    loc: "Midrasho Shel Shem, 987 Schumacher Dr, Los Angeles, CA", details: "Kabbalat Shabbat at 4:15 PM, celebratory dinner at 5:45 PM." },
+  Lunch: { file: "cal/lunch.ics", title: "Daniel's Bar Mitzvah · Shabbat Lunch", start: "20261212T204500Z", end: "20261212T233000Z",
+    loc: "Shiloh's, 8939 W Pico Blvd, Los Angeles, CA",
+    details: "Celebratory lunch at 12:45 PM at Shiloh's. Before: prayers 9:00 AM and Torah reading 10:00 AM at Midrasho Shel Shem, 987 Schumacher Dr." }
+};
+
+function calLinks(m) {
+  const ev = CAL[m], box = el("div", "cal");
+  const apple = el("a", "", "Apple / Outlook");
+  apple.href = ev.file; // no download attr: lets iPhone open it straight in Calendar
+  const google = el("a", "", "Google Calendar");
+  google.href = "https://calendar.google.com/calendar/render?" + new URLSearchParams({
+    action: "TEMPLATE", text: ev.title, dates: ev.start + "/" + ev.end, location: ev.loc,
+    details: ev.details + "\n\nChange your RSVP: https://toobs4.github.io/daniel/"
+  });
+  google.target = "_blank"; google.rel = "noopener";
+  apple.setAttribute("aria-label", "Add " + d_title(m) + " to Apple or Outlook calendar");
+  google.setAttribute("aria-label", "Add " + d_title(m) + " to Google Calendar");
+  box.append(apple, google);
+  return box;
+}
+const d_title = m => (guest && guest.data.mealInfo[m] ? guest.data.mealInfo[m].title : m);
 
 $("edit-btn").addEventListener("click", () => { $("send-msg").textContent = ""; renderInvite(); });
 

@@ -1,0 +1,22 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Elfersi//Daniel Bar Mitzvah//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:daniel-bar-mitzvah-brunch@toobs4.github.io
+DTSTAMP:20261022T200000Z
+DTSTART:20261206T163000Z
+DTEND:20261206T193000Z
+SUMMARY:Daniel's Bar Mitzvah · Sunday Brunch
+LOCATION:Midrasho Shel Shem\, 987 Schumacher Dr\, Los Angeles\, CA
+DESCRIPTION:Tefillin & First Aliyah at 8:30 AM\, brunch to follow.\n\nChang
+ e your RSVP: https://toobs4.github.io/daniel/
+URL:https://toobs4.github.io/daniel/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+END:VCALENDAR

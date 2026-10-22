@@ -1,0 +1,23 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Elfersi//Daniel Bar Mitzvah//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:daniel-bar-mitzvah-lunch@toobs4.github.io
+DTSTAMP:20261022T200000Z
+DTSTART:20261212T204500Z
+DTEND:20261212T233000Z
+SUMMARY:Daniel's Bar Mitzvah · Shabbat Lunch
+LOCATION:Shiloh's\, 8939 W Pico Blvd\, Los Angeles\, CA
+DESCRIPTION:Celebratory lunch at 12:45 PM at Shiloh's. Before: prayers 9:00
+  AM and Torah reading 10:00 AM at Midrasho Shel Shem\, 987 Schumacher Dr.\
+ n\nChange your RSVP: https://toobs4.github.io/daniel/
+URL:https://toobs4.github.io/daniel/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,22 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Elfersi//Daniel Bar Mitzvah//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:daniel-bar-mitzvah-dinner@toobs4.github.io
+DTSTAMP:20261022T200000Z
+DTSTART:20261212T001500Z
+DTEND:20261212T043000Z
+SUMMARY:Daniel's Bar Mitzvah · Friday Dinner
+LOCATION:Midrasho Shel Shem\, 987 Schumacher Dr\, Los Angeles\, CA
+DESCRIPTION:Kabbalat Shabbat at 4:15 PM\, celebratory dinner at 5:45 PM.\n\
+ nChange your RSVP: https://toobs4.github.io/daniel/
+URL:https://toobs4.github.io/daniel/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+END:VCALENDAR
