@@ -221,7 +221,7 @@ function mealFields(m, d) {
     const id = m + "-" + kind;
     const l = el("label", "", label); l.htmlFor = id;
     const i = document.createElement("input");
-    Object.assign(i, { id, type: "number", min: 0, max: 20, step: 1, inputMode: "numeric", required: true, placeholder: "0" });
+    Object.assign(i, { id, type: "number", min: 0, max: 20, step: 1, inputMode: "numeric", required: true });
     if (prev[kind] !== undefined && prev[kind] !== "") i.value = prev[kind];
     f.append(l, i); return f;
   };
