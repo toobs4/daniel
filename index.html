@@ -84,11 +84,18 @@
   .flyer .name { font-family: var(--serif); font-weight: 600; font-size: 48px; line-height: 1; margin: 0; }
   .flyer .cel { font-family: var(--serif); font-size: 20px; margin: 2px 0 0; }
   .flyer .sec { border-top: 1px solid #e7b9bb; padding: 16px 0 10px; }
-  .flyer .sec:first-of-type { border-top: 1px solid var(--red); margin-top: 20px; }
+  .flyer .sec.first { border-top: 1px solid var(--red); margin-top: 20px; }
   .flyer .date { font-family: var(--serif); color: var(--muted); font-size: 19px; }
   .flyer .ev { font-family: var(--serif); color: var(--red); font-size: 22px; margin: 4px 0 2px; }
   .flyer .ln { font-family: var(--serif); color: var(--muted); font-size: 15px; line-height: 1.45; }
   .flyer .end { border-top: 1px solid var(--red); padding-top: 12px; font-family: var(--serif); color: var(--muted); font-size: 15px; }
+  .rsvp-inline { margin: 12px auto 6px; max-width: 300px; background: #fff; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px 2px; text-align: left; }
+  .rsvp-inline .lbl { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--red); margin-bottom: 8px; text-align: center; }
+  .rsvp-inline .field { margin-bottom: 10px; }
+  .rsvp-inline input[type=number] { padding: 9px 12px; font-size: 16px; }
+  .flyer .end button { max-width: 300px; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
 </style>
 </head>
@@ -120,21 +127,18 @@
     <div id="find-msg" class="msg" role="status"></div>
   </section>
 
-  <!-- Step 2: invitation + form -->
+  <!-- Step 2: invitation with RSVP fields built in -->
   <section id="step-invite" class="hidden">
     <p id="welcome" class="welcome"></p>
-    <div id="rsvp-card" class="card">
-      <h2>Kindly RSVP</h2>
-      <p id="rsvp-hint" class="hint">Enter the number attending each meal (0 if not coming).</p>
-      <form id="rsvp-form" novalidate>
-        <div id="meals"></div>
+    <form id="rsvp-form" class="flyer" novalidate>
+      <div id="flyer-body"></div>
+      <div id="rsvp-foot" class="end">
+        <p class="ln" style="margin:0 0 12px">Enter 0 if not coming.</p>
         <button id="send-btn" type="submit">Send my answer</button>
-      </form>
-      <div id="send-msg" class="msg" role="status"></div>
-    </div>
-    <div id="noreply-card" class="card hidden">
-      <p class="center" style="margin:0">No reply needed. We look forward to celebrating with you.</p>
-    </div>
+        <div id="send-msg" class="msg" role="status"></div>
+      </div>
+      <div id="noreply-foot" class="end hidden">No reply needed. We look forward to celebrating with you.</div>
+    </form>
     <div class="center"><button class="link" id="not-me">Not you? Start over</button></div>
   </section>
 
@@ -159,6 +163,7 @@ let guest = null;   // { first, last, data }
 
 function show(id) {
   ["step-find", "step-invite", "step-done"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+  document.querySelector("header").classList.toggle("hidden", id === "step-invite");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -200,38 +205,55 @@ function el(tag, cls, text) {
   return e;
 }
 
+const MEAL_OF = it =>
+  it.title === "Celebratory Dinner" ? "Dinner" :
+  it.title === "Celebratory Lunch" ? "Lunch" :
+  it.lines.indexOf("Brunch to follow") >= 0 ? "Brunch" : null;
+const MEAL_LABEL = { Brunch: "Brunch", Dinner: "Dinner", Lunch: "Lunch" };
+
+function mealFields(m, d) {
+  const prev = (d.previous && d.previous[m]) || {};
+  const box = el("div", "rsvp-inline");
+  box.append(el("div", "lbl", "RSVP · " + MEAL_LABEL[m]));
+  const grid = el("div", "counts" + (d.kidsOnly ? " one" : ""));
+  const mk = (kind, label) => {
+    const f = el("div", "field");
+    const id = m + "-" + kind;
+    const l = el("label", "", label); l.htmlFor = id;
+    const i = document.createElement("input");
+    Object.assign(i, { id, type: "number", min: 0, max: 20, step: 1, inputMode: "numeric", required: true, placeholder: "0" });
+    if (prev[kind] !== undefined && prev[kind] !== "") i.value = prev[kind];
+    f.append(l, i); return f;
+  };
+  if (!d.kidsOnly) grid.append(mk("a", "Adults"));
+  grid.append(mk("k", "Kids"));
+  box.append(grid);
+  return box;
+}
+
 function renderInvite() {
-  const d = guest.data;
+  const d = guest.data, f = d.flyer;
   $("welcome").textContent = "Welcome, " + d.greeting;
-  const hasMeals = d.meals.length > 0;
-  $("rsvp-card").classList.toggle("hidden", !hasMeals);
-  $("noreply-card").classList.toggle("hidden", hasMeals);
-  $("rsvp-hint").textContent = d.kidsOnly
-    ? "Enter the number of kids attending each meal (0 if not coming)."
-    : "Enter the number of adults and kids attending each meal (0 if not coming).";
-  const box = $("meals");
+  const box = $("flyer-body");
   box.innerHTML = "";
-  d.meals.forEach(m => {
-    const prev = (d.previous && d.previous[m]) || {};
-    const wrap = document.createElement("div");
-    wrap.className = "meal";
-    const h = document.createElement("h3"); h.textContent = d.mealInfo[m].title;
-    const w = document.createElement("div"); w.className = "when"; w.textContent = d.mealInfo[m].when;
-    const grid = document.createElement("div"); grid.className = "counts" + (d.kidsOnly ? " one" : "");
-    const mk = (kind, label) => {
-      const f = document.createElement("div"); f.className = "field";
-      const id = m + "-" + kind;
-      const l = document.createElement("label"); l.htmlFor = id; l.textContent = label;
-      const i = document.createElement("input");
-      Object.assign(i, { id, type: "number", min: 0, max: 20, step: 1, inputMode: "numeric", required: true });
-      if (prev[kind] !== undefined && prev[kind] !== "") i.value = prev[kind];
-      f.append(l, i); return f;
-    };
-    if (!d.kidsOnly) grid.append(mk("a", "Adults"));
-    grid.append(mk("k", "Kids"));
-    wrap.append(h, w, grid);
-    box.append(wrap);
+  box.append(el("div", "bsd", "בס״ד"));
+  const img = el("img", "logo"); img.src = "img/logo.jpg"; img.alt = ""; box.append(img);
+  if (f.heading) box.append(el("p", "heading", f.heading), el("div", "short"));
+  box.append(el("p", "name", "Daniel"), el("p", "cel", "Celebrates his Bar Mitzvah"));
+  f.sections.forEach((sec, n) => {
+    const s = el("div", n === 0 ? "sec first" : "sec");
+    s.append(el("div", "date", sec.date));
+    sec.items.forEach(it => {
+      s.append(el("div", "ev", it.title));
+      it.lines.forEach(l => s.append(el("div", "ln", l)));
+      const m = MEAL_OF(it);
+      if (m && d.meals.indexOf(m) >= 0) s.append(mealFields(m, d));
+    });
+    box.append(s);
   });
+  const hasMeals = d.meals.length > 0;
+  $("rsvp-foot").classList.toggle("hidden", !hasMeals);
+  $("noreply-foot").classList.toggle("hidden", hasMeals);
   $("send-msg").textContent = "";
   $("send-btn").textContent = d.previous ? "Update my answer" : "Send my answer";
   show("step-invite");
