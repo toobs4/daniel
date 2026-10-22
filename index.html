@@ -142,7 +142,7 @@
     <form id="rsvp-form" class="flyer" novalidate>
       <div id="flyer-body"></div>
       <div id="rsvp-foot" class="end">
-        <p class="ln" style="margin:0 0 12px">Enter 0 if not coming.</p>
+        <p id="foot-hint" class="ln" style="margin:0 0 12px">Enter 0 if not coming.</p>
         <button id="send-btn" type="submit">Send my answer</button>
         <button id="withdraw-btn" class="link hidden" type="button">Withdraw my answer</button>
         <div id="send-msg" class="msg" role="status"></div>
@@ -280,6 +280,7 @@ function renderInvite() {
   $("rsvp-foot").classList.toggle("hidden", !hasMeals);
   $("noreply-foot").classList.toggle("hidden", hasMeals);
   $("withdraw-btn").classList.toggle("hidden", !d.previous);
+  $("foot-hint").classList.toggle("hidden", !!d.kidsOnly);
   $("send-btn").textContent = d.previous ? "Update my answer" : "Send my answer";
   show("step-invite");
 }
