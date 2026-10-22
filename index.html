@@ -96,6 +96,15 @@
   .rsvp-inline .field { margin-bottom: 10px; }
   .rsvp-inline input[type=number] { padding: 9px 12px; font-size: 16px; }
   .flyer .end button { max-width: 300px; }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .choice label { margin: 0; cursor: pointer; }
+  .choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .choice span { display: block; text-align: center; padding: 10px 6px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 500; }
+  .choice input:checked + span { background: var(--red); border-color: var(--red); color: #fff; }
+  .choice input:focus-visible + span { box-shadow: 0 0 0 3px var(--red-soft); }
+  #withdraw-btn { display: block; margin: 6px auto 0; font-size: 14px; }
+  #withdraw-btn.hidden { display: none !important; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
 </style>
 </head>
@@ -112,7 +121,7 @@
   <!-- Step 1: identify -->
   <section id="step-find" class="card">
     <h2>Find your invitation</h2>
-    <p class="lead">Please enter your first and last name.</p>
+    <p class="lead">Please enter your first and last name (parents only).</p>
     <form id="find-form" autocomplete="on" novalidate>
       <div class="field">
         <label for="first">First name</label>
@@ -135,6 +144,7 @@
       <div id="rsvp-foot" class="end">
         <p class="ln" style="margin:0 0 12px">Enter 0 if not coming.</p>
         <button id="send-btn" type="submit">Send my answer</button>
+        <button id="withdraw-btn" class="link hidden" type="button">Withdraw my answer</button>
         <div id="send-msg" class="msg" role="status"></div>
       </div>
       <div id="noreply-foot" class="end hidden">No reply needed. We look forward to celebrating with you.</div>
@@ -150,6 +160,7 @@
       <ul id="summary" class="summary"></ul>
       <p class="hint">You can come back to this page anytime to change your answer.</p>
       <button id="edit-btn" type="button">Change my answer</button>
+      <div class="center"><button id="withdraw-btn2" class="link" type="button">Withdraw my answer</button></div>
     </div>
   </section>
 
@@ -190,6 +201,7 @@ $("find-form").addEventListener("submit", async e => {
     if (data.status !== "ok") { msg.textContent = NOT_FOUND; msg.classList.add("err"); return; }
     guest = { first, last, data };
     msg.textContent = "";
+    $("send-msg").textContent = "";
     renderInvite();
   } catch (err) {
     msg.textContent = "Something went wrong. Please try again in a moment."; msg.classList.add("err");
@@ -215,7 +227,20 @@ function mealFields(m, d) {
   const prev = (d.previous && d.previous[m]) || {};
   const box = el("div", "rsvp-inline");
   box.append(el("div", "lbl", "RSVP · " + MEAL_LABEL[m]));
-  const grid = el("div", "counts" + (d.kidsOnly ? " one" : ""));
+  if (d.kidsOnly) {
+    const ch = el("div", "choice");
+    [["1", "Coming"], ["0", "Not coming"]].forEach(([v, t]) => {
+      const lab = el("label");
+      const r = document.createElement("input");
+      Object.assign(r, { type: "radio", name: m + "-k", value: v });
+      if (prev.k !== undefined && prev.k !== "" && String(prev.k) === v) r.checked = true;
+      lab.append(r, el("span", "", t));
+      ch.append(lab);
+    });
+    box.append(ch);
+    return box;
+  }
+  const grid = el("div", "counts");
   const mk = (kind, label) => {
     const f = el("div", "field");
     const id = m + "-" + kind;
@@ -254,7 +279,7 @@ function renderInvite() {
   const hasMeals = d.meals.length > 0;
   $("rsvp-foot").classList.toggle("hidden", !hasMeals);
   $("noreply-foot").classList.toggle("hidden", hasMeals);
-  $("send-msg").textContent = "";
+  $("withdraw-btn").classList.toggle("hidden", !d.previous);
   $("send-btn").textContent = d.previous ? "Update my answer" : "Send my answer";
   show("step-invite");
 }
@@ -266,10 +291,12 @@ $("rsvp-form").addEventListener("submit", async e => {
   const counts = {};
   for (const m of d.meals) {
     const get = k => { const el = $(m + "-" + k); return el ? el.value.trim() : "0"; };
-    const a = d.kidsOnly ? "0" : get("a"), k = get("k");
+    const picked = document.querySelector('input[name="' + m + '-k"]:checked');
+    const a = d.kidsOnly ? "0" : get("a"), k = d.kidsOnly ? (picked ? picked.value : "") : get("k");
     const ok = v => /^\d{1,2}$/.test(v) && +v <= 20;
     if (!ok(a) || !ok(k)) {
-      msg.textContent = "Please enter a number for every field (0 if not coming).";
+      msg.textContent = d.kidsOnly ? "Please choose Coming or Not coming for each meal."
+        : "Please enter a number for every field (0 if not coming).";
       msg.classList.add("err"); return;
     }
     counts[m] = { a: +a, k: +k };
@@ -295,7 +322,8 @@ function renderSummary(counts) {
     const c = counts[m];
     const parts = [];
     if (!d.kidsOnly) parts.push(c.a + (c.a === 1 ? " adult" : " adults"));
-    parts.push(c.k + (c.k === 1 ? " kid" : " kids"));
+    if (!d.kidsOnly) parts.push(c.k + (c.k === 1 ? " kid" : " kids"));
+    else parts.push("Coming");
     const total = c.a + c.k;
     const li = document.createElement("li");
     const a = document.createElement("span"); a.textContent = d.mealInfo[m].title;
@@ -304,7 +332,25 @@ function renderSummary(counts) {
   });
 }
 
-$("edit-btn").addEventListener("click", () => { renderInvite(); });
+$("edit-btn").addEventListener("click", () => { $("send-msg").textContent = ""; renderInvite(); });
+
+async function withdraw(btn) {
+  if (!confirm("Withdraw your answer? It will be removed and you can reply again later.")) return;
+  btn.disabled = true;
+  try {
+    const res = await api(null, { action: "withdraw", first: guest.first, last: guest.last });
+    if (res.status !== "ok") throw new Error(res.status);
+    guest.data.previous = null;
+    renderInvite();
+    const msg = $("send-msg"); msg.className = "msg"; msg.textContent = "Your answer has been withdrawn.";
+  } catch (err) {
+    alert("We couldn't withdraw your answer. Please try again.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("withdraw-btn").addEventListener("click", e => withdraw(e.currentTarget));
+$("withdraw-btn2").addEventListener("click", e => withdraw(e.currentTarget));
 $("not-me").addEventListener("click", () => {
   guest = null; $("first").value = ""; $("last").value = ""; $("find-msg").textContent = ""; show("step-find");
 });
