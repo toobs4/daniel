@@ -226,7 +226,7 @@ const MEAL_LABEL = { Brunch: "Brunch", Dinner: "Dinner", Lunch: "Lunch" };
 function mealFields(m, d) {
   const prev = (d.previous && d.previous[m]) || {};
   const box = el("div", "rsvp-inline");
-  box.append(el("div", "lbl", "RSVP · " + MEAL_LABEL[m]));
+  box.append(el("div", "lbl", "RSVP"));
   if (d.kidsOnly) {
     const ch = el("div", "choice");
     [["1", "Coming"], ["0", "Not coming"]].forEach(([v, t]) => {
