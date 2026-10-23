@@ -114,6 +114,8 @@
   .decline input { width: 18px; height: 18px; margin: 0; accent-color: var(--red); cursor: pointer; }
   .rsvp-inline input[type=number]:disabled { opacity: .45; }
   .rsvp-inline input.invalid { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+  .rsvp-inline .lbl .tip { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; }
+  .rsvp-inline .help { font-size: 12px; color: var(--red); font-weight: 500; text-align: center; margin-top: 4px; }
   #withdraw-btn { display: block; margin: 6px auto 0; font-size: 14px; }
   #withdraw-btn.hidden { display: none !important; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
@@ -259,11 +261,14 @@ function mealFields(m, d) {
     const i = document.createElement("input");
     Object.assign(i, { id, type: "number", min: 0, max: 20, step: 1, inputMode: "numeric", required: true });
     if (prev[kind] !== undefined && prev[kind] !== "") i.value = prev[kind];
-    f.append(l, i); return f;
+    f.append(l, i, el("div", "help hidden", "None? Enter 0")); return f;
   };
   if (!d.kidsOnly) grid.append(mk("a", "Adults"));
   grid.append(mk("k", "Kids"));
   box.append(grid);
+  // One-line hint next to the RSVP title: "RSVP · Enter 0 if none".
+  const tip = el("span", "tip", " \u00b7 Enter 0 if none");
+  box.querySelector(".lbl").append(tip);
   // "Sorry, we can't make it": sets both counts to 0 and locks them.
   const dec = el("label", "decline");
   const cb = document.createElement("input");
@@ -271,12 +276,19 @@ function mealFields(m, d) {
   dec.append(cb, document.createTextNode("Sorry, we can't make it"));
   box.append(dec);
   const inputs = grid.querySelectorAll("input");
-  const apply = on => inputs.forEach(i => { i.disabled = on; i.classList.remove("invalid"); });
+  const clear = i => {
+    i.classList.remove("invalid"); i.parentNode.querySelector(".help").classList.add("hidden");
+    if (!document.querySelector("#rsvp-form input.invalid") && $("send-msg").classList.contains("err")) $("send-msg").textContent = "";
+  };
+  const apply = on => {
+    inputs.forEach(i => { i.disabled = on; clear(i); });
+    tip.classList.toggle("hidden", on);
+  };
   cb.addEventListener("change", () => {
     inputs.forEach(i => { i.value = cb.checked ? "0" : ""; });
     apply(cb.checked);
   });
-  inputs.forEach(i => i.addEventListener("input", () => i.classList.remove("invalid")));
+  inputs.forEach(i => i.addEventListener("input", () => clear(i)));
   if (String(prev.a) === "0" && String(prev.k) === "0") { cb.checked = true; apply(true); }
   return box;
 }
@@ -313,24 +325,25 @@ $("rsvp-form").addEventListener("submit", async e => {
   e.preventDefault();
   const d = guest.data, msg = $("send-msg");
   msg.className = "msg";
-  const counts = {};
+  const counts = {}, bad = [];
+  const ok = v => /^\d{1,2}$/.test(v) && +v <= 20;
   for (const m of d.meals) {
     const get = k => { const el = $(m + "-" + k); return el ? el.value.trim() : "0"; };
     const picked = document.querySelector('input[name="' + m + '-k"]:checked');
     const a = d.kidsOnly ? "0" : get("a"), k = d.kidsOnly ? (picked ? picked.value : "") : get("k");
-    const ok = v => /^\d{1,2}$/.test(v) && +v <= 20;
-    if (!ok(a) || !ok(k)) {
-      if (d.kidsOnly) {
-        msg.textContent = "Please choose Coming or Not coming for each meal.";
-      } else {
-        const bad = [["a", a], ["k", k]].filter(([, v]) => !ok(v)).map(([kind]) => $(m + "-" + kind)).filter(Boolean);
-        bad.forEach(i => i.classList.add("invalid"));
-        if (bad[0]) bad[0].scrollIntoView({ behavior: "smooth", block: "center" });
-        msg.textContent = "For the " + d.mealInfo[m].title + ", please fill in Adults and Kids, or tick “Sorry, we can't make it”.";
-      }
+    if (d.kidsOnly && !ok(k)) {
+      msg.textContent = "Please choose Coming or Not coming for each meal.";
       msg.classList.add("err"); return;
     }
+    [["a", a], ["k", k]].forEach(([kind, v]) => { if (!ok(v) && $(m + "-" + kind)) bad.push($(m + "-" + kind)); });
     counts[m] = { a: +a, k: +k };
+  }
+  if (bad.length) {
+    // Every empty box turns red, and its grey hint below turns red too.
+    bad.forEach(i => { i.classList.add("invalid"); i.parentNode.querySelector(".help").classList.remove("hidden"); });
+    bad[0].scrollIntoView({ behavior: "smooth", block: "center" });
+    msg.textContent = "Please check the highlighted fields.";
+    msg.classList.add("err"); return;
   }
   $("send-btn").disabled = true; msg.textContent = "Sending…";
   try {
