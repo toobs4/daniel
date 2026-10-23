@@ -109,6 +109,11 @@
     background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 500; }
   .choice input:checked + span { background: var(--red); border-color: var(--red); color: #fff; }
   .choice input:focus-visible + span { box-shadow: 0 0 0 3px var(--red-soft); }
+  .decline { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 10px;
+    font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; letter-spacing: 0; }
+  .decline input { width: 18px; height: 18px; margin: 0; accent-color: var(--red); cursor: pointer; }
+  .rsvp-inline input[type=number]:disabled { opacity: .45; }
+  .rsvp-inline input.invalid { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
   #withdraw-btn { display: block; margin: 6px auto 0; font-size: 14px; }
   #withdraw-btn.hidden { display: none !important; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
@@ -148,7 +153,6 @@
     <form id="rsvp-form" class="flyer" novalidate>
       <div id="flyer-body"></div>
       <div id="rsvp-foot" class="end">
-        <p id="foot-hint" class="ln" style="margin:0 0 12px">Enter 0 if not coming.</p>
         <button id="send-btn" type="submit">Send my answer</button>
         <button id="withdraw-btn" class="link hidden" type="button">Withdraw my answer</button>
         <div id="send-msg" class="msg" role="status"></div>
@@ -260,6 +264,20 @@ function mealFields(m, d) {
   if (!d.kidsOnly) grid.append(mk("a", "Adults"));
   grid.append(mk("k", "Kids"));
   box.append(grid);
+  // "Sorry, we can't make it": sets both counts to 0 and locks them.
+  const dec = el("label", "decline");
+  const cb = document.createElement("input");
+  Object.assign(cb, { type: "checkbox", id: m + "-no" });
+  dec.append(cb, document.createTextNode("Sorry, we can't make it"));
+  box.append(dec);
+  const inputs = grid.querySelectorAll("input");
+  const apply = on => inputs.forEach(i => { i.disabled = on; i.classList.remove("invalid"); });
+  cb.addEventListener("change", () => {
+    inputs.forEach(i => { i.value = cb.checked ? "0" : ""; });
+    apply(cb.checked);
+  });
+  inputs.forEach(i => i.addEventListener("input", () => i.classList.remove("invalid")));
+  if (String(prev.a) === "0" && String(prev.k) === "0") { cb.checked = true; apply(true); }
   return box;
 }
 
@@ -287,7 +305,6 @@ function renderInvite() {
   $("rsvp-foot").classList.toggle("hidden", !hasMeals);
   $("noreply-foot").classList.toggle("hidden", hasMeals);
   $("withdraw-btn").classList.toggle("hidden", !d.previous);
-  $("foot-hint").classList.toggle("hidden", !!d.kidsOnly);
   $("send-btn").textContent = d.previous ? "Update my answer" : "Send my answer";
   show("step-invite");
 }
@@ -303,8 +320,14 @@ $("rsvp-form").addEventListener("submit", async e => {
     const a = d.kidsOnly ? "0" : get("a"), k = d.kidsOnly ? (picked ? picked.value : "") : get("k");
     const ok = v => /^\d{1,2}$/.test(v) && +v <= 20;
     if (!ok(a) || !ok(k)) {
-      msg.textContent = d.kidsOnly ? "Please choose Coming or Not coming for each meal."
-        : "Please enter a number for every field (0 if not coming).";
+      if (d.kidsOnly) {
+        msg.textContent = "Please choose Coming or Not coming for each meal.";
+      } else {
+        const bad = [["a", a], ["k", k]].filter(([, v]) => !ok(v)).map(([kind]) => $(m + "-" + kind)).filter(Boolean);
+        bad.forEach(i => i.classList.add("invalid"));
+        if (bad[0]) bad[0].scrollIntoView({ behavior: "smooth", block: "center" });
+        msg.textContent = "For the " + d.mealInfo[m].title + ", please fill in Adults and Kids, or tick “Sorry, we can't make it”.";
+      }
       msg.classList.add("err"); return;
     }
     counts[m] = { a: +a, k: +k };
